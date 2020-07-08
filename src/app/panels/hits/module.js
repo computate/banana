@@ -16,11 +16,10 @@ define([
     'app',
     'underscore',
     'jquery',
-    'kbn',
 
     'jquery.flot',
     'jquery.flot.pie'
-], function (angular, app, _, $, kbn) {
+], function (angular, app, _) {
     'use strict';
 
     var module = angular.module('kibana.panels.hits', []);
@@ -125,12 +124,13 @@ define([
         };
 
         $scope.updateFlow = function () {
-            if ($scope.panel.arrangement === 'horizontal')
+            if ($scope.panel.arrangement === 'horizontal') {
                 $scope.panel.style['flex-direction'] = 'row';
-            else
+            }
+            else {
                 $scope.panel.style['flex-direction'] = 'column';
-
-        }
+            }
+        };
 
         $scope.get_data = function () {
             delete $scope.panel.error;
