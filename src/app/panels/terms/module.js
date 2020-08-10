@@ -129,7 +129,7 @@ function (angular, app, _, $, kbn) {
       var facet = '';
 
       if ($scope.panel.mode === 'count') {
-        facet = '&facet=true&facet.field=' + $scope.panel.field + '&facet.limit=' + $scope.panel.size + '&facet.missing=true';
+        facet = '&facet=true&facet.field=' + $scope.panel.field + ($scope.panel.colorField !== undefined ? ('&facet.field=' + $scope.panel.colorField) : '') + '&facet.limit=' + $scope.panel.size + '&facet.missing=true';
       } else {
         // if mode != 'count' then we need to use stats query
         // stats does not support something like facet.limit, so we have to sort and limit the results manually.
@@ -252,6 +252,9 @@ function (angular, app, _, $, kbn) {
           if ($scope.panel.useColorFromField && isValidHTMLColor(color)) {
             slice.color = color;
           }
+          if ($scope.panel.colorField !== undefined && isValidHTMLColor(color)) {
+            slice.color = color;
+          }
           return slice;
         };
 
@@ -262,26 +265,36 @@ function (angular, app, _, $, kbn) {
         $scope.hits = results.response.numFound;
         $scope.data = [];
 
-        if ($scope.panel.mode === 'count') {
+        if ($scope.panel.mode === 'count' && results.facet_counts.facet_fields[$scope.panel.field]  !== undefined) {
           // In count mode, the y-axis min should be zero because count value cannot be negative.
           $scope.yaxis_min = 0;
-          _.each(results.facet_counts.facet_fields, function(v) {
-            for (var i = 0; i < v.length; i++) {
-              var term = v[i];
-              i++;
-              var count = v[i];
-              sum += count;
-              if(term === null){
-                missing = count;
-              }else{
-                // if count = 0, do not add it to the chart, just skip it
-                if (count === 0) { continue; }
-                var slice = { label : term, data : [[k,count]], actions: true};
-                slice = addSliceColor(slice,term);
-                $scope.data.push(slice);
+          var v = results.facet_counts.facet_fields[$scope.panel.field];
+          var vColors = null;
+          if($scope.panel.colorField !== undefined && results.facet_counts.facet_fields[$scope.panel.colorField]  !== undefined)
+              vColors = results.facet_counts.facet_fields[$scope.panel.colorField];
+          for (var i = 0; i < v.length; i++) {
+            var term = v[i];
+            var color = null;
+            if (vColors)
+              color = vColors[i];
+            i++;
+            var count = v[i];
+            sum += count;
+            if(term === null){
+              missing = count;
+            }else{
+              // if count = 0, do not add it to the chart, just skip it
+              if (count === 0) { continue; }
+              var slice = { label : term, data : [[k,count]], actions: true};
+              if (vColors) {
+                slice = addSliceColor(slice,color);
               }
+              else {
+                slice = addSliceColor(slice,term);
+              }
+              $scope.data.push(slice);
             }
-          });
+          }
         } else {
           // In stats mode, set y-axis min to null so jquery.flot will set the scale automatically.
           $scope.yaxis_min = null;
